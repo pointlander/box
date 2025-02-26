@@ -41,16 +41,18 @@ func main() {
 	mind, index := make([]Vector, 128*1024), 0
 	m := NewMixer()
 	m.Add(0)
-	query := "Summary of Romeo and Juliet"
+	query := "Why is the sky blue?"
 	for {
 		answer := Query(query)
-		fmt.Printf(answer)
-		fmt.Println("\n----------------------------------------")
-		for _, v := range []byte(answer) {
-			index = (index + 1) % len(mind)
-			mind[index].Vector = m.Mix()
-			mind[index].Symbol = v
-			m.Add(v)
+		if len(answer) != 0 {
+			fmt.Printf(answer)
+			fmt.Println("\n----------------------------------------")
+			for _, v := range []byte(answer) {
+				index = (index + 1) % len(mind)
+				mind[index].Vector = m.Mix()
+				mind[index].Symbol = v
+				m.Add(v)
+			}
 		}
 		query = ""
 		for i := 0; i < 128; i++ {
