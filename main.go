@@ -52,7 +52,7 @@ func main() {
 			mind[index].Symbol = v
 			m.Add(v)
 		}
-		query := ""
+		query = "Things different from: "
 		for i := 0; i < 128; i++ {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
