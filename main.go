@@ -38,10 +38,10 @@ func main() {
 		Vector *[256]float32
 		Symbol byte
 	}
-	mind, index := make([]Vector, 1024), 0
+	mind, index := make([]Vector, 8*1024), 0
 	m := NewMixer()
 	m.Add(0)
-	query := "Why is the sky blue?"
+	query := "Summary of Romeo and Juliet"
 	for {
 		answer := Query(query)
 		fmt.Printf(answer)
