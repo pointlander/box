@@ -12,9 +12,23 @@ import (
 	"net/http"
 )
 
+// Prompt is a llm prompt
+type Prompt struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+}
+
 // Query submits a query to the llm
 func Query(query string) string {
-	buffer := bytes.NewBuffer([]byte(fmt.Sprintf(`{ "model": "llama3.2", "prompt": "%s"}`, query)))
+	prompt := Prompt{
+		Model:  "llama3.2",
+		Prompt: query,
+	}
+	data, err := json.Marshal(prompt)
+	if err != nil {
+		panic(err)
+	}
+	buffer := bytes.NewBuffer(data)
 	response, err := http.Post("http://10.0.0.54:11434/api/generate", "application/json", buffer)
 	if err != nil {
 		panic(err)
