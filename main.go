@@ -38,7 +38,7 @@ func main() {
 		Vector *[256]float32
 		Symbol byte
 	}
-	mind, index := make([]Vector, 8*1024), 0
+	mind, index := make([]Vector, 128*1024), 0
 	m := NewMixer()
 	m.Add(0)
 	query := "Summary of Romeo and Juliet"
@@ -52,7 +52,7 @@ func main() {
 			mind[index].Symbol = v
 			m.Add(v)
 		}
-		query = "Things different from: "
+		query = ""
 		for i := 0; i < 128; i++ {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
@@ -69,6 +69,6 @@ func main() {
 			m.Add(symbol)
 		}
 		fmt.Printf(query)
-		fmt.Println("\n----------------------------------------")
+		fmt.Println("\n++++++++++++++++++++++++++++++++++++++++")
 	}
 }
