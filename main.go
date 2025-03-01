@@ -55,7 +55,7 @@ func main() {
 	mind, index := make([]Vector, 128*1024), 0
 	m := NewMixer()
 	m.Add(0)
-	query := "Why is the sky blue?"
+	query := "Why is time symmetric at quantum scales by asymmetric at large scales?"
 	for {
 		answer := Query(query)
 		if len(answer) != 0 {
@@ -69,7 +69,8 @@ func main() {
 			}
 		}
 		query = ""
-		for i := 0; i < 128; i++ {
+		i := 0
+		for {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
 			for _, v := range mind {
@@ -83,6 +84,10 @@ func main() {
 			}
 			query += fmt.Sprintf("%c", symbol)
 			m.Add(symbol)
+			i++
+			if i >= 128 && (symbol == '.' || symbol == '!') {
+				break
+			}
 		}
 		fmt.Printf(query)
 		fmt.Println("\n++++++++++++++++++++++++++++++++++++++++")
