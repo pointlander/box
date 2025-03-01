@@ -85,7 +85,10 @@ func main() {
 			query += fmt.Sprintf("%c", symbol)
 			m.Add(symbol)
 			i++
-			if i >= 128 && (symbol == '.' || symbol == '!') {
+			if i >= 128 && (symbol == '.' || symbol == '!' || symbol == '?') {
+				break
+			}
+			if i >= 256 {
 				break
 			}
 		}
