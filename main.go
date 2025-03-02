@@ -88,7 +88,7 @@ func main() {
 			if i >= 128 && (symbol == '.' || symbol == '!' || symbol == '?') {
 				break
 			}
-			if i >= 256 {
+			if i >= 1024 {
 				break
 			}
 		}
