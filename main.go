@@ -49,10 +49,13 @@ func Query(query string) string {
 
 func main() {
 	type Vector struct {
-		Vector *[256]float32
+		Vector []float32
 		Symbol byte
 	}
-	mind, index := make([]Vector, 128*1024), 0
+	mind, index := make([][]Vector, Size), 0
+	for i := range mind {
+		mind[i] = make([]Vector, 128*1024)
+	}
 	m := NewMixer()
 	m.Add(0)
 	query := "Why is time symmetric at quantum scales by asymmetric at large scales?"
@@ -63,8 +66,11 @@ func main() {
 			fmt.Println("\n----------------------------------------")
 			for _, v := range []byte(answer) {
 				index = (index + 1) % len(mind)
-				mind[index].Vector = m.Mix()
-				mind[index].Symbol = v
+				vectors := m.Mix()
+				for i := range mind {
+					mind[i][index].Vector = vectors.Data[i*vectors.Cols : (i+1)*vectors.Cols]
+					mind[i][index].Symbol = v
+				}
 				m.Add(v)
 			}
 		}
@@ -73,13 +79,15 @@ func main() {
 		for {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
-			for _, v := range mind {
-				if v.Symbol == 0 {
-					continue
-				}
-				cs := CS(v.Vector[:], q[:])
-				if cs > max {
-					max, symbol = cs, v.Symbol
+			for i := range mind {
+				for _, v := range mind[i] {
+					if v.Symbol == 0 {
+						continue
+					}
+					cs := CS(v.Vector, q.Data[i*q.Cols:(i+1)*q.Cols])
+					if cs > max {
+						max, symbol = cs, v.Symbol
+					}
 				}
 			}
 			query += fmt.Sprintf("%c", symbol)
