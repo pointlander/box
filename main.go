@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/alixaxel/pagerank"
 )
 
 // Prompt is a llm prompt
@@ -47,15 +49,29 @@ func Query(query string) string {
 	return answer
 }
 
+// PageRank uses page rank to turn the output of attention into a distribution
+func PageRank(a Matrix) []float32 {
+	a = a.T()
+	z := make([]float32, a.Rows)
+	graph := pagerank.NewGraph()
+	for i := 0; i < a.Rows; i++ {
+		for j := 0; j < a.Rows; j++ {
+			cs := NCS(a.Data[i*a.Cols:(i+1)*a.Cols], a.Data[j*a.Cols:(j+1)*a.Cols])
+			graph.Link(uint32(i), uint32(j), float64(cs))
+		}
+	}
+	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
+		z[node] = float32(rank)
+	})
+	return z
+}
+
 func main() {
 	type Vector struct {
 		Vector []float32
 		Symbol byte
 	}
-	mind, index := make([][]Vector, Size), 0
-	for i := range mind {
-		mind[i] = make([]Vector, 128*1024)
-	}
+	mind, index := make([]Vector, 128*1024), 0
 	m := NewMixer()
 	m.Add(0)
 	query := "Why is time symmetric at quantum scales by asymmetric at large scales?"
@@ -67,27 +83,26 @@ func main() {
 			for _, v := range []byte(answer) {
 				index = (index + 1) % len(mind)
 				vectors := m.Mix()
-				for i := range mind {
-					mind[i][index].Vector = vectors.Data[i*vectors.Cols : (i+1)*vectors.Cols]
-					mind[i][index].Symbol = v
-				}
+				vector := PageRank(vectors)
+				mind[index].Vector = vector
+				mind[index].Symbol = v
 				m.Add(v)
 			}
 		}
+		fmt.Println("half way there")
 		query = ""
 		i := 0
 		for {
 			q := m.Mix()
+			qq := PageRank(q)
 			max, symbol := float32(0.0), byte(0)
-			for i := range mind {
-				for _, v := range mind[i] {
-					if v.Symbol == 0 {
-						continue
-					}
-					cs := CS(v.Vector, q.Data[i*q.Cols:(i+1)*q.Cols])
-					if cs > max {
-						max, symbol = cs, v.Symbol
-					}
+			for _, v := range mind {
+				if v.Symbol == 0 {
+					continue
+				}
+				cs := NCS(v.Vector, qq)
+				if cs > max {
+					max, symbol = cs, v.Symbol
 				}
 			}
 			query += fmt.Sprintf("%c", symbol)

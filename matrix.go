@@ -193,3 +193,15 @@ func SelfAttention(input Matrix) Matrix {
 func CS(a []float32, b []float32) float32 {
 	return vector.Dot(a, b)
 }
+
+// NCS is float32 normalized cosine similarity
+func NCS(a []float32, b []float32) float32 {
+	aa, bb, ab := vector.Dot(a, a), vector.Dot(b, b), vector.Dot(a, b)
+	if aa <= 0 {
+		return 0
+	}
+	if bb <= 0 {
+		return 0
+	}
+	return ab / (sqrt(aa) * sqrt(bb))
+}
