@@ -162,10 +162,10 @@ func softmax(values []float32) {
 }
 
 // SelfAttention computes the self attention of Q, K, V
-func SelfAttention(input Matrix, output *[256]float32) {
+func SelfAttention(input Matrix) Matrix {
 	values := make([]float32, input.Rows)
 	V := input.T()
-	sums := make([]float32, V.Rows)
+	output := NewMatrix(V.Rows, input.Rows)
 	for i := 0; i < input.Rows; i++ {
 		K := input.Data[i*input.Cols : (i+1)*input.Cols]
 		for j := 0; j < input.Rows; j++ {
@@ -176,16 +176,32 @@ func SelfAttention(input Matrix, output *[256]float32) {
 
 		for j := 0; j < V.Rows; j++ {
 			V := V.Data[j*V.Cols : (j+1)*V.Cols]
-			sums[j] += vector.Dot(values, V)
+			output.Data = append(output.Data, vector.Dot(values, V))
 		}
 	}
-	aa := sqrt(vector.Dot(sums, sums))
-	for i, v := range sums {
-		output[i] = v / aa
+	for i := 0; i < output.Rows; i++ {
+		row := output.Data[i*output.Cols : (i+1)*output.Cols]
+		aa := sqrt(vector.Dot(row, row))
+		for j, v := range row {
+			row[j] = v / aa
+		}
 	}
+	return output
 }
 
 // CS is float32 cosine similarity
 func CS(a []float32, b []float32) float32 {
 	return vector.Dot(a, b)
+}
+
+// NCS is float32 normalized cosine similarity
+func NCS(a []float32, b []float32) float32 {
+	aa, bb, ab := vector.Dot(a, a), vector.Dot(b, b), vector.Dot(a, b)
+	if aa <= 0 {
+		return 0
+	}
+	if bb <= 0 {
+		return 0
+	}
+	return ab / (sqrt(aa) * sqrt(bb))
 }

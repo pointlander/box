@@ -86,8 +86,7 @@ func (m *Mixer) Add(s byte) {
 }
 
 // Mix mixes the histograms outputting a matrix
-func (m Mixer) Mix() *[256]float32 {
-	output := [256]float32{}
+func (m Mixer) Mix() Matrix {
 	x := NewMatrix(256, Size)
 	for i := range m.Histograms {
 		sum := float32(0.0)
@@ -98,6 +97,5 @@ func (m Mixer) Mix() *[256]float32 {
 			x.Data = append(x.Data, float32(v)/sum)
 		}
 	}
-	SelfAttention(x, &output)
-	return &output
+	return SelfAttention(x)
 }

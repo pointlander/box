@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/alixaxel/pagerank"
 )
 
 // Prompt is a llm prompt
@@ -47,9 +49,26 @@ func Query(query string) string {
 	return answer
 }
 
+// PageRank uses page rank to turn the output of attention into a distribution
+func PageRank(a Matrix) []float32 {
+	a = a.T()
+	z := make([]float32, a.Rows)
+	graph := pagerank.NewGraph()
+	for i := 0; i < a.Rows; i++ {
+		for j := 0; j < a.Rows; j++ {
+			cs := NCS(a.Data[i*a.Cols:(i+1)*a.Cols], a.Data[j*a.Cols:(j+1)*a.Cols])
+			graph.Link(uint32(i), uint32(j), float64(cs))
+		}
+	}
+	graph.Rank(1.0, 1e-3, func(node uint32, rank float64) {
+		z[node] = float32(rank)
+	})
+	return z
+}
+
 func main() {
 	type Vector struct {
-		Vector *[256]float32
+		Vector []float32
 		Symbol byte
 	}
 	mind, index := make([]Vector, 128*1024), 0
@@ -63,11 +82,13 @@ func main() {
 			fmt.Println("\n----------------------------------------")
 			for _, v := range []byte(answer) {
 				index = (index + 1) % len(mind)
-				mind[index].Vector = m.Mix()
+				vectors := m.Mix()
+				mind[index].Vector = vectors.Data
 				mind[index].Symbol = v
 				m.Add(v)
 			}
 		}
+		fmt.Println("half way there")
 		query = ""
 		i := 0
 		for {
@@ -77,7 +98,7 @@ func main() {
 				if v.Symbol == 0 {
 					continue
 				}
-				cs := CS(v.Vector[:], q[:])
+				cs := NCS(v.Vector, q.Data)
 				if cs > max {
 					max, symbol = cs, v.Symbol
 				}
