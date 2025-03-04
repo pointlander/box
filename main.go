@@ -82,10 +82,10 @@ func main() {
 			fmt.Println("\n----------------------------------------")
 			for _, v := range []byte(answer) {
 				index = (index + 1) % len(mind)
-				/*vectors := m.Mix()
-				vector := PageRank(vectors)
-				mind[index].Vector = vector
-				mind[index].Symbol = v*/
+				vectors := m.Mix()
+				//vector := PageRank(vectors)
+				mind[index].Vector = vectors.Data
+				mind[index].Symbol = v
 				m.Add(v)
 			}
 		}
@@ -94,22 +94,22 @@ func main() {
 		i := 0
 		for {
 			q := m.Mix()
-			qq := PageRank(q)
+			//qq := PageRank(q)
 			max, symbol := float32(0.0), byte(0)
-			for i, v := range qq {
+			/*for i, v := range qq {
 				if v > max {
 					max, symbol = v, byte(i)
 				}
-			}
-			/*for _, v := range mind {
+			}*/
+			for _, v := range mind {
 				if v.Symbol == 0 {
 					continue
 				}
-				cs := NCS(v.Vector, qq)
+				cs := NCS(v.Vector, q.Data)
 				if cs > max {
 					max, symbol = cs, v.Symbol
 				}
-			}*/
+			}
 			query += fmt.Sprintf("%c", symbol)
 			m.Add(symbol)
 			i++
