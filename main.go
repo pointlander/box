@@ -82,10 +82,10 @@ func main() {
 			fmt.Println("\n----------------------------------------")
 			for _, v := range []byte(answer) {
 				index = (index + 1) % len(mind)
-				vectors := m.Mix()
+				/*vectors := m.Mix()
 				vector := PageRank(vectors)
 				mind[index].Vector = vector
-				mind[index].Symbol = v
+				mind[index].Symbol = v*/
 				m.Add(v)
 			}
 		}
@@ -96,7 +96,12 @@ func main() {
 			q := m.Mix()
 			qq := PageRank(q)
 			max, symbol := float32(0.0), byte(0)
-			for _, v := range mind {
+			for i, v := range qq {
+				if v > max {
+					max, symbol = v, byte(i)
+				}
+			}
+			/*for _, v := range mind {
 				if v.Symbol == 0 {
 					continue
 				}
@@ -104,7 +109,7 @@ func main() {
 				if cs > max {
 					max, symbol = cs, v.Symbol
 				}
-			}
+			}*/
 			query += fmt.Sprintf("%c", symbol)
 			m.Add(symbol)
 			i++
