@@ -25,7 +25,7 @@ const (
 	// B2 exponential decay rate for the second-moment estimates
 	B2 = 0.89
 	// Eta is the learning rate
-	Eta = 1.0e-5
+	Eta = 1.0e-3
 )
 
 const (
@@ -126,7 +126,6 @@ func main() {
 				m.Add(v)
 			}
 		}
-
 		rng := rand.New(rand.NewSource(1))
 		set := tf32.NewSet()
 		set.Add("w", 8*256, len(s))
@@ -149,6 +148,54 @@ func main() {
 			for i := range w.States {
 				w.States[i] = make([]float32, len(w.X))
 			}
+		}
+		l := tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b"))
+		loss := tf32.Avg(tf32.Quadratic(l, others.Get("output")))
+		for i := 0; i < 256; i++ {
+			pow := func(x float32) float32 {
+				y := math.Pow(float64(x), float64(i+1))
+				if math.IsNaN(y) || math.IsInf(y, 0) {
+					return 0
+				}
+				return float32(y)
+			}
+
+			others.Zero()
+			set.Zero()
+
+			cost := tf32.Gradient(loss).X[0]
+			if math.IsNaN(float64(cost)) || math.IsInf(float64(cost), 0) {
+				break
+			}
+
+			norm := float32(0.0)
+			for _, p := range set.Weights {
+				for _, d := range p.D {
+					norm += d * d
+				}
+			}
+			norm = float32(math.Sqrt(float64(norm)))
+			b1, b2 := pow(B1), pow(B2)
+			scaling := float32(1.0)
+			if norm > 1 {
+				scaling = 1 / norm
+			}
+			for _, w := range set.Weights {
+				for l, d := range w.D {
+					g := d * scaling
+					m := B1*w.States[StateM][l] + (1-B1)*g
+					v := B2*w.States[StateV][l] + (1-B2)*g*g
+					w.States[StateM][l] = m
+					w.States[StateV][l] = v
+					mhat := m / (1 - b1)
+					vhat := v / (1 - b2)
+					if vhat < 0 {
+						vhat = 0
+					}
+					w.X[l] -= Eta * mhat / (float32(math.Sqrt(float64(vhat))) + 1e-8)
+				}
+			}
+			fmt.Println(i, cost)
 		}
 
 		fmt.Println("done training")
