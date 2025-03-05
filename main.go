@@ -100,9 +100,16 @@ func main() {
 	query := "Why is time symmetric at quantum scales by asymmetric at large scales?"
 	for {
 		answer := Query(query)
+		s, c := make(map[byte]int), 0
+		for _, v := range []byte(answer) {
+			if _, has := s[v]; !has {
+				s[v] = c
+				c++
+			}
+		}
 		others := tf32.NewSet()
 		others.Add("input", 8*256, len([]byte(answer)))
-		others.Add("output", 256, len([]byte(answer)))
+		others.Add("output", len(s), len([]byte(answer)))
 		if len(answer) != 0 {
 			input, output := others.ByName["input"], others.ByName["output"]
 			fmt.Printf(answer)
@@ -113,18 +120,14 @@ func main() {
 				mind[index].Vector = vectors.Data
 				mind[index].Symbol = v
 				input.X = append(input.X, vectors.Data...)
-				out := make([]float32, 256)
-				out[v] = 1
+				out := make([]float32, len(s))
+				out[s[v]] = 1
 				output.X = append(output.X, out...)
 				m.Add(v)
 			}
 		}
 
 		rng := rand.New(rand.NewSource(1))
-		s := make(map[byte]bool)
-		for _, v := range []byte(answer) {
-			s[v] = true
-		}
 		set := tf32.NewSet()
 		set.Add("w", 8*256, len(s))
 		set.Add("b", len(s))
