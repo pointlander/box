@@ -131,6 +131,8 @@ func main() {
 		set := tf32.NewSet()
 		set.Add("w", 8*256, len(s))
 		set.Add("b", len(s))
+		set.Add("w1", len(s), len(s))
+		set.Add("b1", len(s))
 		for i := range set.Weights {
 			w := set.Weights[i]
 			if strings.HasPrefix(w.N, "b") {
@@ -150,8 +152,9 @@ func main() {
 				w.States[i] = make([]float32, len(w.X))
 			}
 		}
-		l := tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b"))
-		loss := tf32.Avg(tf32.Quadratic(l, others.Get("output")))
+		l := tf32.Sigmoid(tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b")))
+		l1 := tf32.Add(tf32.Mul(set.Get("w1"), l), set.Get("b1"))
+		loss := tf32.Avg(tf32.Quadratic(l1, others.Get("output")))
 		for i := 0; i < 256; i++ {
 			pow := func(x float32) float32 {
 				y := math.Pow(float64(x), float64(i+1))
@@ -204,7 +207,8 @@ func main() {
 		others.Add("input", 8*256, 1)
 		input := others.ByName["input"]
 		input.X = input.X[:cap(input.X)]
-		l = tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b"))
+		l = tf32.Sigmoid(tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b")))
+		l1 = tf32.Add(tf32.Mul(set.Get("w1"), l), set.Get("b1"))
 		query := ""
 		i := 0
 		cp := m.Copy()
@@ -214,14 +218,25 @@ func main() {
 				input.X[i] = v
 			}
 			max, symbol := float32(0.0), byte(0)
-			l(func(a *tf32.V) bool {
+			l1(func(a *tf32.V) bool {
+				sum := float32(0.0)
+				for _, v := range a.X {
+					sum += v
+				}
+				selection, total := rng.Float32(), float32(0.0)
 				for i, v := range a.X {
-					if v > max {
-						max, symbol = v, is[i]
+					total += v / sum
+					if selection < total {
+						symbol = is[i]
+						break
 					}
+					/*if v > max {
+						max, symbol = v, is[i]
+					}*/
 				}
 				return true
 			})
+			_ = max
 			query += fmt.Sprintf("%c", symbol)
 			cp.Add(symbol)
 			i++
