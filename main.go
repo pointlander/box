@@ -100,10 +100,11 @@ func main() {
 	query := "Why is time symmetric at quantum scales by asymmetric at large scales?"
 	for {
 		answer := Query(query)
-		s, c := make(map[byte]int), 0
+		s, is, c := make(map[byte]int), make(map[int]byte), 0
 		for _, v := range []byte(answer) {
 			if _, has := s[v]; !has {
 				s[v] = c
+				is[c] = v
 				c++
 			}
 		}
@@ -199,8 +200,43 @@ func main() {
 		}
 
 		fmt.Println("done training")
-		query = ""
+		others = tf32.NewSet()
+		others.Add("input", 8*256, 1)
+		input := others.ByName["input"]
+		input.X = input.X[:cap(input.X)]
+		l = tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b"))
+		query := ""
 		i := 0
+		cp := m.Copy()
+		for {
+			q := cp.Mix()
+			for i, v := range q.Data {
+				input.X[i] = v
+			}
+			max, symbol := float32(0.0), byte(0)
+			l(func(a *tf32.V) bool {
+				for i, v := range a.X {
+					if v > max {
+						max, symbol = v, is[i]
+					}
+				}
+				return true
+			})
+			query += fmt.Sprintf("%c", symbol)
+			cp.Add(symbol)
+			i++
+			if i >= 128 && (symbol == '.' || symbol == '!' || symbol == '?') {
+				break
+			}
+			if i >= 1024 {
+				break
+			}
+		}
+		fmt.Printf(query)
+		fmt.Println("\n****************************************")
+
+		query = ""
+		i = 0
 		for {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
