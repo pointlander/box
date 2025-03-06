@@ -12,6 +12,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/pointlander/gradient/tf32"
@@ -209,49 +210,68 @@ func main() {
 		input.X = input.X[:cap(input.X)]
 		l = tf32.Sigmoid(tf32.Add(tf32.Mul(set.Get("w"), others.Get("input")), set.Get("b")))
 		l1 = tf32.Add(tf32.Mul(set.Get("w1"), l), set.Get("b1"))
-		query := ""
-		i := 0
-		cp := m.Copy()
-		for {
-			q := cp.Mix()
-			for i, v := range q.Data {
-				input.X[i] = v
-			}
-			max, symbol := float32(0.0), byte(0)
-			l1(func(a *tf32.V) bool {
-				sum := float32(0.0)
-				for _, v := range a.X {
-					sum += v
-				}
-				selection, total := rng.Float32(), float32(0.0)
-				for i, v := range a.X {
-					total += v / sum
-					if selection < total {
-						symbol = is[i]
-						break
-					}
-					/*if v > max {
-						max, symbol = v, is[i]
-					}*/
-				}
-				return true
-			})
-			_ = max
-			query += fmt.Sprintf("%c", symbol)
-			cp.Add(symbol)
-			i++
-			if i >= 128 && (symbol == '.' || symbol == '!' || symbol == '?') {
-				break
-			}
-			if i >= 1024 {
-				break
-			}
+		type Path struct {
+			Path string
+			Cost float32
 		}
-		fmt.Printf(query)
+		paths := make([]Path, 0, 8)
+		for j := 0; j < 128; j++ {
+			query := ""
+			cost := float32(0.0)
+			i := 0
+			cp := m.Copy()
+			for {
+				q := cp.Mix()
+				for i, v := range q.Data {
+					input.X[i] = v
+				}
+				max, symbol := float32(0.0), byte(0)
+				l1(func(a *tf32.V) bool {
+					sum := float32(0.0)
+					for _, v := range a.X {
+						sum += v
+					}
+					selection, total := rng.Float32(), float32(0.0)
+					for i, v := range a.X {
+						total += v / sum
+						if selection < total {
+							cost += v / sum
+							symbol = is[i]
+							break
+						}
+						/*if v > max {
+							max, symbol = v, is[i]
+						}*/
+					}
+					return true
+				})
+				_ = max
+				query += fmt.Sprintf("%c", symbol)
+				cp.Add(symbol)
+				i++
+				if i >= 128 && (symbol == '.' || symbol == '!' || symbol == '?') {
+					break
+				}
+				if i >= 1024 {
+					break
+				}
+			}
+			paths = append(paths, Path{
+				Path: query,
+				Cost: cost,
+			})
+		}
+		for i := range paths {
+			paths[i].Cost /= float32(len(paths[i].Path))
+		}
+		sort.Slice(paths, func(i, j int) bool {
+			return paths[i].Cost > paths[j].Cost
+		})
+		fmt.Printf(paths[0].Path)
 		fmt.Println("\n****************************************")
 
 		query = ""
-		i = 0
+		i := 0
 		for {
 			q := m.Mix()
 			max, symbol := float32(0.0), byte(0)
